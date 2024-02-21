@@ -9,14 +9,18 @@ import java.io.*;
  * A class to demonstrate a simple client-server connection using sockets.
  *
  */
-public class SockServer {
-  static Socket sock;
-  static DataOutputStream os;
-  static ObjectInputStream in;
+public class SockServer implements Runnable {
+  Socket conn;
+  DataOutputStream os;
+  ObjectInputStream in;
 
   static int port = 8888;
 
-  public static void main (String args[]) {
+  public SockServer(Socket sock) {
+    this.conn = sock;
+  }
+
+  public static void main (String args[]) throws IOException {
 
     if (args.length != 1) {
       System.out.println("Expected arguments: <port(int)>");
@@ -30,7 +34,6 @@ public class SockServer {
       System.exit(2);
     }
 
-    try {
       //open socket
       ServerSocket serv = new ServerSocket(port);
       System.out.println("Server ready for connections");
@@ -40,20 +43,27 @@ public class SockServer {
        *
        */
 
-
-      while (true){
+      while (true) {
         System.out.println("Server waiting for a connection");
-        sock = serv.accept(); // blocking wait
+        Socket sock = serv.accept(); // blocking wait
+        SockServer server = new SockServer(sock);
+        new Thread (server, "test").start();
         System.out.println("Client connected");
+      }
+    }
 
-        // setup the object reading channel
-        in = new ObjectInputStream(sock.getInputStream());
+    public void run() {
 
-        // get output channel
-        OutputStream out = sock.getOutputStream();
+      try {
+         in = new ObjectInputStream(conn.getInputStream());
 
-        // create an object output writer (Java only)
-        os = new DataOutputStream(out);
+          // get output channel
+            OutputStream out = conn.getOutputStream();
+          // create an object output writer (Java only)
+            os = new DataOutputStream(out);
+          } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
 
         boolean connected = true;
         while (connected) {
@@ -92,14 +102,10 @@ public class SockServer {
             res = wrongType(req);
           }
           writeOut(res);
+
         }
         // if we are here - client has disconnected so close connection to socket
-        overandout();
-      }
-    } catch(Exception e) {
-      e.printStackTrace();
-      overandout(); // close connection to socket upon error
-    }
+        //overandout();
   }
 
 
@@ -233,17 +239,17 @@ public class SockServer {
   }
 
   // sends the response and closes the connection between client and server.
-  static void overandout() {
+  public void overandout() {
     try {
       os.close();
       in.close();
-      sock.close();
+      conn.close();
     } catch(Exception e) {e.printStackTrace();}
 
   }
 
   // sends the response and closes the connection between client and server.
-  static void writeOut(JSONObject res) {
+  public void writeOut(JSONObject res) {
     try {
       os.writeUTF(res.toString());
       // make sure it wrote and doesn't get cached in a buffer
