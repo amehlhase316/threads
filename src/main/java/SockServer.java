@@ -9,12 +9,13 @@ import java.io.*;
  * A class to demonstrate a simple client-server connection using sockets.
  *
  */
-public class SockServer implements Runnable {
-  Socket conn;
+public class SockServer implements Runnable { // make this a threaded server
+//public class SockServer extends Thread { //ALTERNATIVE -- see later changes as well
+    Socket conn;
   DataOutputStream os;
   ObjectInputStream in;
 
-  static int port = 8888;
+  static int port = 8888; // server will only listen on one port but create different sockets for connecttion later
 
   public SockServer(Socket sock) {
     this.conn = sock;
@@ -35,7 +36,7 @@ public class SockServer implements Runnable {
     }
 
       //open socket
-      ServerSocket serv = new ServerSocket(port);
+      ServerSocket serv = new ServerSocket(port); // create the listening server socket
       System.out.println("Server ready for connections");
 
       /**
@@ -45,13 +46,16 @@ public class SockServer implements Runnable {
 
       while (true) {
         System.out.println("Server waiting for a connection");
-        Socket sock = serv.accept(); // blocking wait
-        SockServer server = new SockServer(sock);
-        new Thread (server, "test").start();
+        Socket sock = serv.accept(); // blocking wait, server accepts client
+        SockServer server = new SockServer(sock); // create a new SockServer class  which gets that new sock object (this is our threaded class)
+//        server.start(); // ALTERNATIVE: use this and remove next line and it should work with the extends
+        new Thread (server, "test").start(); // we start our Thread and then go back to waiting on new connection, thread will now handle that client
         System.out.println("Client connected");
       }
     }
 
+    // The run method which handles everything for one client
+    // Input Output streams are for one client only and handle that client
     public void run() {
 
       try {
@@ -105,7 +109,7 @@ public class SockServer implements Runnable {
 
         }
         // if we are here - client has disconnected so close connection to socket
-        //overandout();
+        overandout();
   }
 
 
